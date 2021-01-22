@@ -1,0 +1,62 @@
+{
+  "Angela": {
+    "emails": ["derekfran55@gmail.com","dmfranz@wisc.edu"],
+    "textNums": ["+17153471797"],
+    "callNums": ["+17153471797"],
+    "active": true,
+    "macs": [],
+    "hosts": [],
+    "specialActions": [],
+    "last_seen": ""
+  },
+  "Derek": {
+    "emails": [],
+    "textNums": [],
+    "callNums": [],
+    "active": true,
+    "macs": [],
+    "hosts": [],
+    "specialActions": ["lights","unlock"],
+    "last_seen": ""
+  },
+  "Breck": {
+    "emails": [],
+    "textNums": [],
+    "callNums": [],
+    "active": true,
+    "macs": [],
+    "hosts": [],
+    "specialActions": ["lights"],
+    "last_seen": ""
+  },
+  "Briggs": {
+    "emails": [],
+    "textNums": [],
+    "callNums": [],
+    "active": true,
+    "macs": [],
+    "hosts": [],
+    "specialActions": ["lights"],
+    "last_seen": ""
+  },
+  "Sam": {
+    "emails": [],
+    "textNums": [],
+    "callNums": [],
+    "active": true,
+    "macs": [],
+    "hosts": [],
+    "specialActions": ["lights"],
+    "last_seen": ""
+  },
+  "Will": {
+    "emails": [],
+    "textNums": [],
+    "callNums": [],
+    "active": true,
+    "macs": [],
+    "hosts": [],
+    "specialActions": ["lights"],
+    "last_seen": ""
+  }
+}
