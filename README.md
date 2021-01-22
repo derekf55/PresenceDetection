@@ -1,0 +1,2 @@
+# PresenceDetection
+This program is designed to allow for specific actions to be run based on a when a person is detected at the house.  It determines whether someone has arrived based on if their device has been detected recently on the Wi-Fi.  It pulls names from a database that matches MAC address with a name.  It also deals with the case where a person’s MAC address changes by looking if the hostname matches a hostname of a previously defined name.    
