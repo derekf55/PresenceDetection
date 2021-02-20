@@ -11,8 +11,6 @@ from derek_functions import *
 import requests
 import derek_functions as df
 
-if os.name != 'nt':
-    os.chdir('/media/derek/shared/Sync/Sync/Projects/PresenceDetection/')
 
 # A list of dicts with the name info about them
 PEOPLE_TO_NOTICE = []
