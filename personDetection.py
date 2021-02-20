@@ -3,15 +3,25 @@
 # Started 12/24/20
 # Last Updated 1/21/21 
 
-import json, emailSender, smsSender, mysql.connector, time, os
+import json, emailSender, smsSender, time, os
 from datetime import datetime
 import personDetectedCall
 import passwords
+from derek_functions import *
+import requests
+import derek_functions as df
+
+if os.name != 'nt':
+    os.chdir('/media/derek/shared/Sync/Sync/Projects/PresenceDetection/')
 
 # A list of dicts with the name info about them
 PEOPLE_TO_NOTICE = []
 PEOPLE_TO_NOTICE_FILE = 'peopleToNotice.json'
-FIND_PEOPLE_SQL = os.path.join('sql','peopleHere.sql')
+FIND_PEOPLE_SQL_PATH = os.path.join('sql','peopleHere.sql')
+
+f = open(FIND_PEOPLE_SQL)
+FIND_PEOPLE_SQL = f.read()
+f.close()
 
 
 # List of dicts of people who are currently here
@@ -19,6 +29,8 @@ PEOPLE_HERE = []
 
 # Creates a dict with info about each known person
 KNOWN_PEOPLE = []
+
+FIRST_RUN = True
 
 # Creates the information needed to take action for people that are to be observed
 # Set the default action to just email me
@@ -58,19 +70,6 @@ def createPeopleToNotice():
 
     
     
-#@return returns the connection object and the cursor objects
-# Requires local dns entry to resolve webserver.com 
-def connect():
-    passwd = passwords.getdbPass()
-    conn = mysql.connector.connect(
-    host="webserver.com",
-    user="derek",
-    passwd= passwd,
-    database="homeAutomation"
-    )
-    cursor = conn.cursor()
-    return conn, cursor
-
 # Searches db and find the people
 # Should only run once at start of program  
 def findAllKnownPeople():
@@ -83,11 +82,7 @@ def findAllKnownPeople():
     f.close()
     
     # Get access to database
-    conn, cursor = connect()
-    cursor.execute(sql)
-    results = cursor.fetchall() 
-    conn.close()
-    cursor.close()  
+    results = runSql(sql) 
 
     
     for item in results:
@@ -130,19 +125,13 @@ def findPeopleHere():
     global PEOPLE_HERE
     global KNOWN_PEOPLE
     global FIND_PEOPLE_SQL
+    global FIRST_RUN
 
     # Run sql that determines who is here right now
     people_found = []
-    f = open(FIND_PEOPLE_SQL)
-    sql = f.read()
-    f.close()
 
     # Get access to database
-    conn, cursor = connect()
-    cursor.execute(sql)
-    results = cursor.fetchall()
-    conn.close()
-    cursor.close()
+    results = runSql(FIND_PEOPLE_SQL)
 
     # If there are no people at the house
     if len(results) < 0:
@@ -179,7 +168,10 @@ def findPeopleHere():
     for person in people_found:  
         #If someone has just arrived
         if person not in PEOPLE_HERE:
-            runActions(person)
+            if FIRST_RUN == False:
+                runActions(person)
+                sql = "INSERT INTO personStatus (Person, Status) VALUES ('{}','Arrived')".format(person['Name'])
+                df.runSql(sql)
             PEOPLE_HERE.append(person)
             print(person['Name'])
             
@@ -187,9 +179,12 @@ def findPeopleHere():
     for person in PEOPLE_HERE:
         # If someone just left
         if person not in people_found:
+            sql = "INSERT INTO personStatus (Person, Status) VALUES ('{}','Left')".format(person['Name'])
+            df.runSql(sql)
             print(person['Name']+' left')
+            PEOPLE_HERE.remove(person)
         
-    
+    FIRST_RUN = False
     
 # Run actions on the person dict
 #@param person: The person dict that contains the actions to be performed
@@ -216,14 +211,72 @@ def runActions(person):
 
     for action in person['specialActions']:
         if action == 'lights':
-            pass
+            sucess = turnLights()
+            if sucess == True:
+                logAction(person['Name'], action)
+            
+
+
+def turnLights():
+    now = datetime.datetime.now()
+    # Ignore between 8am and 3:59pm
+    if now.hour >= 8 and now.hour <= 15:
+        return False
+
+
+    # Get the status of the lights in the living room
+    sql = "SELECT Appliance, State FROM homeAutomation WHERE groupName = 'Living_Room'"
+    results = df.runSql(sql)
+
+    for result in results:
+        appliance = result[0]
+        state = result[1]
+        # If a light is already on then stop
+        if state == 1:
+            return False
+
+    # Only turn on one light between 9pm and 8 am
+    if now.hour >= 21 or now.hour < 8:
+        sql = "UPDATE homeAutomation SET State = 1 WHERE Appliance = 'Light_3'"
+        df.runSql(sql)
+        return True
+
+    # Otherwise its between 
+    sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_Room'"
+    df.runSql(sql)
+    return True
+
+
+def houseLights():
+    # Check if it is light outside and if the lights should be turned on
+    sunOut = df.isSunOut()
+    if sunOut == True:
+        return
+    
+    # Get the status of the lights in the living room
+    sql = "SELECT Appliance, State FROM homeAutomation WHERE groupName = 'Living_Room'"
+    results = df.runSql(sql)
+
+    for result in results:
+        appliance = result[0]
+        state = result[1]
+        # If a light is already on then stop
+        if state == 1:
+            return
+    
+    sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_room'"
+    df.runSql(sql)
+
+def logAction(name, action):
+    sql = "INSERT INTO PersonActionLog (Person,Action) VALUES ('{}', '{}')".format(name, action)
+    df.runSql(sql)    
 
 
 def main():
     try:
+        findAllKnownPeople()
+        createPeopleToNotice()
         while True:
-            findAllKnownPeople()
-            createPeopleToNotice()
             findPeopleHere()
             time.sleep(.2)
     except Exception as e:
