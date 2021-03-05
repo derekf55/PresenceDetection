@@ -11,15 +11,12 @@ from derek_functions import *
 import requests
 import derek_functions as df
 
-if os.name != 'nt':
-    os.chdir('/media/derek/shared/Sync/Sync/Projects/PresenceDetection/')
-
 # A list of dicts with the name info about them
 PEOPLE_TO_NOTICE = []
 PEOPLE_TO_NOTICE_FILE = 'peopleToNotice.json'
 FIND_PEOPLE_SQL_PATH = os.path.join('sql','peopleHere.sql')
 
-f = open(FIND_PEOPLE_SQL)
+f = open(FIND_PEOPLE_SQL_PATH)
 FIND_PEOPLE_SQL = f.read()
 f.close()
 
@@ -118,8 +115,8 @@ def findAllKnownPeople():
         person['macs'] = list(set(person['macs']))
         person['hosts'] =  list(set(person['hosts']))
 
-    
-    
+   
+
 # Pull from db and update the info of who is here
 def findPeopleHere():
     global PEOPLE_HERE
@@ -132,6 +129,7 @@ def findPeopleHere():
 
     # Get access to database
     results = runSql(FIND_PEOPLE_SQL)
+
 
     # If there are no people at the house
     if len(results) < 0:
@@ -147,14 +145,24 @@ def findPeopleHere():
         
         # If the person is not mapped in MacToName
         if name == None:
+            newNameFound = 0
             # Try and figure out based on hostname
             for person in KNOWN_PEOPLE:
                 # If you can guess a name based on hostname
                 if hostname in person['hosts']:
                     name = person['Name']
+                    newNameFound = 1
                 # Couldn't guess a name so ignore this entry 
                 else:
-                    continue   
+                    continue
+
+            if newNameFound == 0:
+                try:
+                    name = hostname
+                except Exception as e:
+                    continue
+        
+            
 
         currentPerson['Name'] = name
         # Go through the known peoples list to find dict of relivent person
@@ -163,27 +171,48 @@ def findPeopleHere():
                 currentPerson = person
                 currentPerson['last_seen'] = last_seen
                 people_found.append(currentPerson)
+        
+        # If this is still an unknown person
+        if currentPerson not in KNOWN_PEOPLE:
+            currentPerson['hosts'] = []
+            currentPerson['macs'] = []
+
+            currentPerson['hosts'].append(hostname)
+            currentPerson['macs'].append(mac)
+            #currentPerson['last_seen'] = last_seen
+            people_found.append(currentPerson)
        
+
+    if FIRST_RUN == True:
+        sql = "DELETE FROM PeopleHere"
+        df.runSql(sql)
 
     for person in people_found:  
         #If someone has just arrived
         if person not in PEOPLE_HERE:
+            sql = "INSERT INTO PeopleHere (Name, hostname, MacAddress) VALUES ('{}', '{}', '{}')".format(person['Name'], person['hosts'][0],person['macs'][0])
+            df.runSql(sql)
             if FIRST_RUN == False:
                 runActions(person)
                 sql = "INSERT INTO personStatus (Person, Status) VALUES ('{}','Arrived')".format(person['Name'])
                 df.runSql(sql)
             PEOPLE_HERE.append(person)
             print(person['Name'])
-            
+                   
     
     for person in PEOPLE_HERE:
         # If someone just left
         if person not in people_found:
+            sql = "DELETE FROM PeopleHere WHERE Name = '{}'".format(person['Name'])
+            df.runSql(sql)
+
             sql = "INSERT INTO personStatus (Person, Status) VALUES ('{}','Left')".format(person['Name'])
             df.runSql(sql)
             print(person['Name']+' left')
             PEOPLE_HERE.remove(person)
         
+    
+
     FIRST_RUN = False
     
 # Run actions on the person dict
@@ -223,7 +252,6 @@ def turnLights():
     if now.hour >= 8 and now.hour <= 15:
         return False
 
-
     # Get the status of the lights in the living room
     sql = "SELECT Appliance, State FROM homeAutomation WHERE groupName = 'Living_Room'"
     results = df.runSql(sql)
@@ -245,27 +273,6 @@ def turnLights():
     sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_Room'"
     df.runSql(sql)
     return True
-
-
-def houseLights():
-    # Check if it is light outside and if the lights should be turned on
-    sunOut = df.isSunOut()
-    if sunOut == True:
-        return
-    
-    # Get the status of the lights in the living room
-    sql = "SELECT Appliance, State FROM homeAutomation WHERE groupName = 'Living_Room'"
-    results = df.runSql(sql)
-
-    for result in results:
-        appliance = result[0]
-        state = result[1]
-        # If a light is already on then stop
-        if state == 1:
-            return
-    
-    sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_room'"
-    df.runSql(sql)
 
 def logAction(name, action):
     sql = "INSERT INTO PersonActionLog (Person,Action) VALUES ('{}', '{}')".format(name, action)
