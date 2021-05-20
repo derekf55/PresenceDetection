@@ -3,10 +3,9 @@
 # Started 12/24/20
 # Last Updated 1/21/21 
 
-import json, emailSender, smsSender, time, os
+import json, time, os
 from datetime import datetime
 import personDetectedCall
-import passwords
 from derek_functions import *
 import requests
 import derek_functions as df
@@ -17,7 +16,7 @@ PEOPLE_TO_NOTICE = []
 PEOPLE_TO_NOTICE_FILE = 'peopleToNotice.json'
 FIND_PEOPLE_SQL_PATH = os.path.join('sql','peopleHere.sql')
 
-f = open(FIND_PEOPLE_SQL)
+f = open(FIND_PEOPLE_SQL_PATH)
 FIND_PEOPLE_SQL = f.read()
 f.close()
 
