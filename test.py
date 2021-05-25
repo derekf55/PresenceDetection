@@ -77,12 +77,16 @@ def test_createPeopleToNoticeDatabase():
     for person in personDetection.KNOWN_PEOPLE:
         print(person)
 
+
+def test_beast_mode():
+    personDetection.beastMode()
     
 def main():   
     count = 0
     #assert(test_light_flash)
     test_createPeopleToNoticeDatabase()
     #test_light_flash()
+    #test_beast_mode()
     
 main()
 

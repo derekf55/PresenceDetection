@@ -262,6 +262,8 @@ def runActions(person):
             sucess = turnLights()
             if sucess == True:
                 logAction(person['Name'], action)
+        if action == 'beastMode':
+            beastMode()
 
 def turnLights():
     now = datetime.datetime.now()
@@ -295,6 +297,26 @@ def logAction(name, action):
     sql = f"INSERT INTO PersonActionLog (Person,Action) VALUES ('{name}', '{action}')"
     df.runSql(sql)    
 
+
+def beastMode():
+    # Toggle the vibe lights and the regular lights 5 times
+    for i in range(0,2):
+        sql = "INSERT INTO ProcessToRun (Command, Server) VALUES ('LEDpower','Pi')"
+        df.runSql(sql)
+
+        sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_Room' "
+        df.runSql(sql)
+
+        time.sleep(2)
+
+        sql = "UPDATE homeAutomation SET State = 0 WHERE groupName = 'Living_Room' "
+        df.runSql(sql)
+
+        sql = "INSERT INTO ProcessToRun (Command, Server) VALUES ('LEDpower','Pi')"
+        df.runSql(sql)
+
+        time.sleep(2)
+    
 
 def main():
     try:
