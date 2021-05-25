@@ -1,10 +1,11 @@
 # The purpose of this program is to run different actions based on who is detected
 # Written by Derek Franz
 # Started 12/24/20
-# Last Updated 5/21/21 
+# Last Updated 5/25/21 
 
 import json, time, os
 from datetime import datetime
+from twilio import rest
 import personDetectedCall
 from derek_functions import *
 import requests
@@ -67,7 +68,27 @@ def createPeopleToNotice():
                 item['active'] = active
                 item['specialActions'] = jsonData[person]['specialActions']
                 PEOPLE_TO_NOTICE.append(item)
+
+
+def createPeopleToNoticeDatabase():
+    global PEOPLE_TO_NOTICE
+    global KNOWN_PEOPLE
+    sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority)"
+    results = df.runSql(sql)
+    for person in results:
+        for item in KNOWN_PEOPLE:
+            if item['Name'] == person[0]:
+                if person[1] is not None:
+                    item['emails'].append(person[1])
+                if person[2] is not None:
+                    item['textNums'].append(person[2])
+                if person[3] is not None:
+                    item['callNums'].append(person[3])
+                if person[4] is not None:
+                    item['specialActions'].append(person[4])
+                item['active'] = True
     
+
 # Searches db and find the people
 # Should only run once at start of program  
 def findAllKnownPeople():
@@ -96,6 +117,9 @@ def findAllKnownPeople():
         d['macs'].append(mac)
         d['specialActions'] = []
         d['active'] = False
+        d['emails'] = []
+        d['textNums'] = []
+        d['callNums'] = []
 
         # Checks if this is a different device from the same person
         personExists = False
@@ -271,8 +295,9 @@ def logAction(name, action):
 def main():
     try:
         findAllKnownPeople()
-        createPeopleToNotice()
+        #createPeopleToNotice()
         while True:
+            createPeopleToNoticeDatabase()
             findPeopleHere()
             time.sleep(.2)
     except Exception as e:
