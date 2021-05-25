@@ -307,7 +307,7 @@ def beastMode():
         sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_Room' "
         df.runSql(sql)
 
-        time.sleep(2)
+        time.sleep(3)
 
         sql = "UPDATE homeAutomation SET State = 0 WHERE groupName = 'Living_Room' "
         df.runSql(sql)
@@ -315,7 +315,10 @@ def beastMode():
         sql = "INSERT INTO ProcessToRun (Command, Server) VALUES ('LEDpower','Pi')"
         df.runSql(sql)
 
-        time.sleep(2)
+        sql = "INSERT INTO ProcessToRun (Command, Server) VALUES ('Donny','Pi')"
+        df.runSql(sql)
+
+        time.sleep(3)
     
 
 def main():
