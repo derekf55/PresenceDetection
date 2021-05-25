@@ -73,7 +73,7 @@ def createPeopleToNotice():
 def createPeopleToNoticeDatabase():
     global PEOPLE_TO_NOTICE
     global KNOWN_PEOPLE
-    sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority)"
+    sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
     results = df.runSql(sql)
     for person in results:
         for item in KNOWN_PEOPLE:
@@ -299,7 +299,7 @@ def main():
         while True:
             createPeopleToNoticeDatabase()
             findPeopleHere()
-            time.sleep(.2)
+            time.sleep(1)
     except Exception as e:
         time.sleep(1)
         main()
