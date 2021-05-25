@@ -73,6 +73,10 @@ def createPeopleToNotice():
 def createPeopleToNoticeDatabase():
     global PEOPLE_TO_NOTICE
     global KNOWN_PEOPLE
+    priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")
+    if priority[0][0] == "Disabled":
+        return
+
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
     results = df.runSql(sql)
     for person in results:
