@@ -32,6 +32,7 @@ FIRST_RUN = True
 # 8am and 6pm 
 END_SWITCHING_LIGHT_HOUR = 8
 START_SWITCHING_LIGHT_HOUR = 17
+HOME_ALONE_NUM = "+17153471797"
 
 # Creates the information needed to take action for people that are to be observed
 # Set the default action to just email me
@@ -76,6 +77,12 @@ def createPeopleToNoticeDatabase():
     priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")
     if priority[0][0] == "Disabled":
         return
+    elif priority[0][0] == "Home Alone":
+        for person in KNOWN_PEOPLE:
+            if person['Name'] == 'Derek':
+                continue
+            person['textNums'].append(HOME_ALONE_NUM)
+            person['active'] = True
 
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
     results = df.runSql(sql)

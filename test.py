@@ -80,11 +80,18 @@ def test_createPeopleToNoticeDatabase():
 
 def test_beast_mode():
     personDetection.beastMode()
+
+def test_home_alone():
+    personDetection.findAllKnownPeople()
+    personDetection.createPeopleToNoticeDatabase()
+    for person in personDetection.KNOWN_PEOPLE:
+        print(person)
     
 def main():   
     count = 0
     #assert(test_light_flash)
-    test_createPeopleToNoticeDatabase()
+    #test_createPeopleToNoticeDatabase()
+    test_home_alone()
     #test_light_flash()
     #test_beast_mode()
     
