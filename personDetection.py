@@ -76,8 +76,10 @@ def createPeopleToNoticeDatabase():
     global KNOWN_PEOPLE
     priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")
     if priority[0][0] == "Disabled":
+        KNOWN_PEOPLE = []
         return
     elif priority[0][0] == "Home Alone":
+        KNOWN_PEOPLE = []
         for person in KNOWN_PEOPLE:
             if person['Name'] == 'Derek':
                 continue

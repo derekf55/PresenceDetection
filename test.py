@@ -89,12 +89,18 @@ def test_home_alone():
         name = person['Name']
         print(df.sendText(person['textNums'][0],f' {name} spotted'))
         exit()
+
+def testSomeoneArrivesWhileHomeAlone():
+    personDetection.findAllKnownPeople()
+    personDetection.createPeopleToNoticeDatabase()
+
+    
     
 def main():   
     count = 0
     #assert(test_light_flash)
     #test_createPeopleToNoticeDatabase()
-    test_home_alone()
+    #test_home_alone()
     #test_light_flash()
     #test_beast_mode()
     
