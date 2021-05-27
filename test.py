@@ -86,6 +86,9 @@ def test_home_alone():
     personDetection.createPeopleToNoticeDatabase()
     for person in personDetection.KNOWN_PEOPLE:
         print(person)
+        name = person['Name']
+        print(df.sendText(person['textNums'][0],f' {name} spotted'))
+        exit()
     
 def main():   
     count = 0

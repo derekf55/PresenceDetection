@@ -86,6 +86,9 @@ def createPeopleToNoticeDatabase():
 
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
     results = df.runSql(sql)
+    if priority[0][0] == "Home Alone":
+        sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = 'Normal'"
+        results = df.runSql(sql)
     for person in results:
         for item in KNOWN_PEOPLE:
             if item['Name'] == person[0]:
