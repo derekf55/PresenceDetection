@@ -3,6 +3,24 @@ import personDetection
 import derek_functions as df
 import datetime
 
+WIFI_INFO_RESULTS = None
+
+def backupWifiInfo():
+    global WIFI_INFO_RESULTS
+    sql = "SELECT * FROM `WifiInfo` "
+    WIFI_INFO_RESULSTS = df.runSql(sql)
+
+def restoreWifiInfo():
+    sql = "DELETE FROM `WifiInfo`"
+    df.runSql(sql)
+
+    for item in WIFI_INFO_RESULTS:
+        sql = f"INSERT INTO `WifiInfo`(`hostname`, `MacAddress`, `last_seen`, `Relevant`) VALUES ({item[0]}, {item[1]}, {item[2]}, {item[3]})"
+        df.runSql(sql)
+
+        
+
+
 def test_add_one():
     personDetection.findAllKnownPeople()
     personDetection.createPeopleToNotice()
@@ -95,7 +113,6 @@ def testSomeoneArrivesWhileHomeAlone():
     personDetection.createPeopleToNoticeDatabase()
 
     
-    
 def main():   
     count = 0
     #assert(test_light_flash)
@@ -103,6 +120,8 @@ def main():
     #test_home_alone()
     #test_light_flash()
     #test_beast_mode()
+    backupWifiInfo()
     
-main()
+if __name__ == '__main__':
+    main()
 
