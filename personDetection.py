@@ -75,6 +75,7 @@ def createPeopleToNoticeDatabase():
     global PEOPLE_TO_NOTICE
     global KNOWN_PEOPLE
     priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")
+    PEOPLE_TO_NOTICE = []
     if priority[0][0] == "Disabled":
         PEOPLE_TO_NOTICE = []
         return
@@ -88,21 +89,28 @@ def createPeopleToNoticeDatabase():
 
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
     results = df.runSql(sql)
+    # Keeps actions from normal and adds new actions
     if priority[0][0] == "Home Alone":
         sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = 'Normal'"
         results = df.runSql(sql)
-    for person in results:
-        for item in KNOWN_PEOPLE:
-            if item['Name'] == person[0]:
-                if person[1] is not None:
-                    item['emails'].append(person[1])
-                if person[2] is not None:
-                    item['textNums'].append(person[2])
-                if person[3] is not None:
-                    item['callNums'].append(person[3])
-                if person[4] is not None:
-                    item['specialActions'].append(person[4])
-                item['active'] = True
+    for entry in results:
+        name = entry[0]
+        email = entry[1]
+        text = entry[2]
+        call = entry[3]
+        action = entry[4]
+        for person in KNOWN_PEOPLE:
+            if person['Name'] == name:
+                if email is not None:
+                    person['emails'].append(email)
+                if text is not None:
+                    person['textNums'].append(text)
+                if call is not None:
+                    person['callNums'].append(call)
+                if action is not None:
+                    person['specialActions'].append(action)
+                person['active'] = True 
+
     
 
 # Searches db and find the people
