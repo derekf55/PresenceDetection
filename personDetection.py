@@ -343,7 +343,7 @@ def beastMode():
     
 def writeError(e):
     f = open(ERROR_FILE,'a')
-    f.write(str(e))
+    f.write(str(e)+'\n')
     f.close()
 
 def main():
