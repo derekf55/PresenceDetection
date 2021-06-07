@@ -273,6 +273,7 @@ def runActions(person):
         df.sendEmail(to,emailFrom,subject,str(body))
 
     for text in person['textNums']:
+        body = person['Name']+' detected on '+person['last_seen'].strftime("%A, %B %d, at %I:%M %p")
         df.sendText(text,body)
     
     for num in person['callNums']:
