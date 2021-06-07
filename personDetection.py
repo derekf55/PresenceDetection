@@ -20,6 +20,7 @@ f = open(FIND_PEOPLE_SQL_PATH)
 FIND_PEOPLE_SQL = f.read()
 f.close()
 
+ERROR_FILE = "error.log"
 
 # List of dicts of people who are currently here
 PEOPLE_HERE = []
@@ -340,6 +341,10 @@ def beastMode():
 
         time.sleep(3)
     
+def writeError(e):
+    f = open(ERROR_FILE,'a')
+    f.write(str(e))
+    f.close()
 
 def main():
     try:
@@ -351,6 +356,7 @@ def main():
             time.sleep(1)
     except Exception as e:
         time.sleep(1)
+        writeError(e)
         main()
 
 if __name__ == '__main__':
