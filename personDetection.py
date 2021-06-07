@@ -85,7 +85,8 @@ def createPeopleToNoticeDatabase():
         for person in KNOWN_PEOPLE:
             if person['Name'] == 'Derek':
                 continue
-            person['textNums'].append(HOME_ALONE_NUM)
+            if HOME_ALONE_NUM not in person['textNums']:
+                person['textNums'].append(HOME_ALONE_NUM)
             person['active'] = True
 
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
@@ -118,7 +119,7 @@ def createPeopleToNoticeDatabase():
 # Should only run once at start of program  
 def findAllKnownPeople():
     global KNOWN_PEOPLE
-    
+    KNOWN_PEOPLE = []
     # Reads the sql query for finding the known people
     path = os.path.join('sql','knownPeople.sql')
     f = open(path)
@@ -274,7 +275,9 @@ def runActions(person):
 
     for text in person['textNums']:
         body = person['Name']+' detected on '+person['last_seen'].strftime("%A, %B %d, at %I:%M %p")
-        df.sendText(text,body)
+        #df.sendText(text,body)
+        #print(f"{person['textNums']} is getting a text")
+        #print(person)
     
     for num in person['callNums']:
         personDetectedCall.call(num,person['Name'],str(person['last_seen'].strftime("%A, %B %d, at %I:%M %p")).replace(' ','+'))
@@ -349,9 +352,10 @@ def writeError(e):
 
 def main():
     try:
-        findAllKnownPeople()
+        #findAllKnownPeople()
         #createPeopleToNotice()
         while True:
+            findAllKnownPeople()
             createPeopleToNoticeDatabase()
             findPeopleHere()
             time.sleep(1)
