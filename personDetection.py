@@ -103,13 +103,13 @@ def createPeopleToNoticeDatabase():
         action = entry[4]
         for person in KNOWN_PEOPLE:
             if person['Name'] == name:
-                if email is not None:
+                if email is not None and email not in person['emails']:
                     person['emails'].append(email)
-                if text is not None:
+                if text is not None and text not in person['textNums']:
                     person['textNums'].append(text)
-                if call is not None:
+                if call is not None and call not in person['callNums']:
                     person['callNums'].append(call)
-                if action is not None:
+                if action is not None and action not in person['specialActions']:
                     person['specialActions'].append(action)
                 person['active'] = True 
 
@@ -119,7 +119,7 @@ def createPeopleToNoticeDatabase():
 # Should only run once at start of program  
 def findAllKnownPeople():
     global KNOWN_PEOPLE
-    KNOWN_PEOPLE = []
+    #KNOWN_PEOPLE = []
     # Reads the sql query for finding the known people
     path = os.path.join('sql','knownPeople.sql')
     f = open(path)
@@ -275,7 +275,7 @@ def runActions(person):
 
     for text in person['textNums']:
         body = person['Name']+' detected on '+person['last_seen'].strftime("%A, %B %d, at %I:%M %p")
-        #df.sendText(text,body)
+        df.sendText(text,body)
         #print(f"{person['textNums']} is getting a text")
         #print(person)
     
