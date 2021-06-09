@@ -29,6 +29,7 @@ PEOPLE_HERE = []
 KNOWN_PEOPLE = []
 
 FIRST_RUN = True
+CURRENT_PRIORITY = ""
 
 # 8am and 6pm 
 END_SWITCHING_LIGHT_HOUR = 8
@@ -75,20 +76,28 @@ def createPeopleToNotice():
 def createPeopleToNoticeDatabase():
     global PEOPLE_TO_NOTICE
     global KNOWN_PEOPLE
+    global CURRENT_PRIORITY
     priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")
     PEOPLE_TO_NOTICE = []
     if priority[0][0] == "Disabled":
         PEOPLE_TO_NOTICE = []
+        CURRENT_PRIORITY = "Disabled"
         return
     elif priority[0][0] == "Home Alone":
         PEOPLE_TO_NOTICE = []
+        CURRENT_PRIORITY = "Disabled"
         for person in KNOWN_PEOPLE:
             if person['Name'] == 'Derek':
                 continue
             if HOME_ALONE_NUM not in person['textNums']:
                 person['textNums'].append(HOME_ALONE_NUM)
             person['active'] = True
-
+    else:
+        if CURRENT_PRIORITY == "Home Alone":
+            for person in KNOWN_PEOPLE:
+                person['textNums'].remove(HOME_ALONE_NUM)
+    
+    CURRENT_PRIORITY = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")[0][0]
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
     results = df.runSql(sql)
     # Keeps actions from normal and adds new actions
