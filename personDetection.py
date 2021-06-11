@@ -318,7 +318,7 @@ def turnLights():
 
     # Only turn on one light between 9pm and 8 am
     if now.hour >= 21 or now.hour < 8:
-        sql = "UPDATE homeAutomation SET State = 1 WHERE Appliance = 'Light_3'"
+        sql = "UPDATE homeAutomation SET State = 1 WHERE Appliance = 'Light_2'"
         df.runSql(sql)
         return True
 
