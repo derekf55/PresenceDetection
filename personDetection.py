@@ -85,7 +85,7 @@ def createPeopleToNoticeDatabase():
         return
     elif priority[0][0] == "Home Alone":
         PEOPLE_TO_NOTICE = []
-        CURRENT_PRIORITY = "Disabled"
+        CURRENT_PRIORITY = "Home Alone"
         for person in KNOWN_PEOPLE:
             if person['Name'] == 'Derek':
                 continue
@@ -173,6 +173,8 @@ def findAllKnownPeople():
     for person in KNOWN_PEOPLE:
         person['macs'] = list(set(person['macs']))
         person['hosts'] =  list(set(person['hosts']))
+
+    
     
 
 # Pull from db and update the info of who is here
@@ -206,7 +208,7 @@ def findPeopleHere():
             # Try and figure out based on hostname
             for person in KNOWN_PEOPLE:
                 # If you can guess a name based on hostname
-                print(person['hosts'])
+                #print(person['hosts'])
                 if hostname in person['hosts']:
                     name = person['Name']
                     newNameFound = 1
