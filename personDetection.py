@@ -212,15 +212,12 @@ def findPeopleHere():
                 if hostname in person['hosts']:
                     name = person['Name']
                     newNameFound = 1
-                # Couldn't guess a name so ignore this entry 
-                else:
-                    continue
-
+                
             if newNameFound == 0:
                 try:
                     name = hostname
                 except Exception as e:
-                    continue  
+                    writeError(e)
 
         currentPerson['Name'] = name
         # Go through the known peoples list to find dict of relivent person
@@ -263,7 +260,10 @@ def findPeopleHere():
             sql = f"INSERT INTO personStatus (Person, Status) VALUES ('{person['Name']}','Left')"
             df.runSql(sql)
             print(person['Name']+' left')
-            PEOPLE_HERE.remove(person)
+            try:
+                PEOPLE_HERE.remove(person)
+            except Exception as e:
+                writeError(f'Failed to remove this person {e}')
 
     FIRST_RUN = False
     
