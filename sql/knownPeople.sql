@@ -1,2 +1,2 @@
-SELECT macAdd, hostname, Name
+SELECT macAdd, hostname, Name, Resident
 FROM knownpeople

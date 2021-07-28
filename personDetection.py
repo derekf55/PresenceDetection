@@ -79,6 +79,11 @@ def createPeopleToNoticeDatabase():
     global CURRENT_PRIORITY
     priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")
     PEOPLE_TO_NOTICE = []
+
+    if priority[0][0] != CURRENT_PRIORITY:
+        print(f'Switching to {priority[0][0]}')
+        
+
     if priority[0][0] == "Disabled":
         PEOPLE_TO_NOTICE = []
         CURRENT_PRIORITY = "Disabled"
@@ -92,10 +97,28 @@ def createPeopleToNoticeDatabase():
             if HOME_ALONE_NUM not in person['textNums']:
                 person['textNums'].append(HOME_ALONE_NUM)
             person['active'] = True
+    elif priority[0][0] == "Outside Detection":
+        PEOPLE_TO_NOTICE = []
+        # Clears the change from home alone mode 
+        # Might be able to remove this
+        if CURRENT_PRIORITY == "Home Alone":
+            for person in KNOWN_PEOPLE:
+                if HOME_ALONE_NUM in  person['textNums']:
+                    person['textNums'].remove(HOME_ALONE_NUM)
+
+        for person in KNOWN_PEOPLE:
+            if person['Resident'] == False:
+                person['active'] = True
+                if HOME_ALONE_NUM not in person['textNums']:
+                    person['textNums'].append(HOME_ALONE_NUM)
+        
+        CURRENT_PRIORITY = "Outside Detection"
+        
     else:
         if CURRENT_PRIORITY == "Home Alone":
             for person in KNOWN_PEOPLE:
-                person['textNums'].remove(HOME_ALONE_NUM)
+                if HOME_ALONE_NUM in person['textNums']:
+                    person['textNums'].remove(HOME_ALONE_NUM)
     
     CURRENT_PRIORITY = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")[0][0]
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
@@ -123,6 +146,7 @@ def createPeopleToNoticeDatabase():
                 person['active'] = True 
 
     
+    
 
 # Searches db and find the people
 # Should only run once at start of program  
@@ -142,6 +166,7 @@ def findAllKnownPeople():
         mac = item[0]
         host = item[1]
         name = item[2]
+        residenceStatus = item[3]
 
         # Creates a new person dict 
         d = {}
@@ -155,6 +180,10 @@ def findAllKnownPeople():
         d['emails'] = []
         d['textNums'] = []
         d['callNums'] = []
+        d['Resident'] = False
+        if residenceStatus == 1:
+            d['Resident'] = True
+        
 
         # Checks if this is a different device from the same person
         personExists = False
@@ -217,7 +246,7 @@ def findPeopleHere():
                 try:
                     name = hostname
                 except Exception as e:
-                    writeError(e)
+                    writeError(f'From line 220 {e}')
 
         currentPerson['Name'] = name
         # Go through the known peoples list to find dict of relivent person
@@ -243,7 +272,10 @@ def findPeopleHere():
     for person in people_found:  
         #If someone has just arrived
         if person not in PEOPLE_HERE:
-            sql = f"INSERT INTO PeopleHere (Name, hostname, MacAddress) VALUES ('{person['Name']}', '{person['hosts'][0]}', '{person['macs'][0]}')"
+            resident = 0
+            if person['Resident'] == True:
+                resident = 1
+            sql = f"INSERT INTO PeopleHere (Name, hostname, MacAddress, Resident) VALUES ('{person['Name']}', '{person['hosts'][0]}', '{person['macs'][0]}', {resident})"
             df.runSql(sql)
             if FIRST_RUN == False:
                 runActions(person)
@@ -251,6 +283,9 @@ def findPeopleHere():
                 df.runSql(sql)
             PEOPLE_HERE.append(person)
             print(person['Name'])
+        else:
+            sql = f"UPDATE `PeopleHere` SET Last_Updated = CURRENT_TIMESTAMP WHERE Name = '{person['Name']}' "
+            df.runSql(sql)
                    
     for person in PEOPLE_HERE:
         # If someone just left
