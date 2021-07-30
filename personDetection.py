@@ -115,6 +115,7 @@ def createPeopleToNoticeDatabase():
         CURRENT_PRIORITY = "Outside Detection"
         
     else:
+        PEOPLE_TO_NOTICE = []
         if CURRENT_PRIORITY == "Home Alone":
             for person in KNOWN_PEOPLE:
                 if HOME_ALONE_NUM in person['textNums']:
@@ -269,9 +270,12 @@ def findPeopleHere():
         sql = "DELETE FROM PeopleHere"
         df.runSql(sql)
 
+    needs_update = False
+
     for person in people_found:  
         #If someone has just arrived
         if person not in PEOPLE_HERE:
+            needs_update = True
             resident = 0
             if person['Resident'] == True:
                 resident = 1
@@ -290,6 +294,7 @@ def findPeopleHere():
     for person in PEOPLE_HERE:
         # If someone just left
         if person not in people_found:
+            needs_update = True
             sql = f"DELETE FROM PeopleHere WHERE Name = '{person['Name']}'"
             df.runSql(sql)
             sql = f"INSERT INTO personStatus (Person, Status) VALUES ('{person['Name']}','Left')"
@@ -301,6 +306,9 @@ def findPeopleHere():
                 writeError(f'Failed to remove this person {e}')
 
     FIRST_RUN = False
+    if needs_update == True:
+        sql = f"INSERT INTO ProcessToRun (Command, Server) VALUES ('Presence_Phone','server')"
+        df.runSql(sql)
     
 # Run actions on the person dict
 #@param person: The person dict that contains the actions to be performed
