@@ -97,6 +97,7 @@ def createPeopleToNoticeDatabase():
             if HOME_ALONE_NUM not in person['textNums']:
                 person['textNums'].append(HOME_ALONE_NUM)
             person['active'] = True
+            person['NotifyDeskPhone'] = True
     elif priority[0][0] == "Outside Detection":
         PEOPLE_TO_NOTICE = []
         # Clears the change from home alone mode 
@@ -109,6 +110,7 @@ def createPeopleToNoticeDatabase():
         for person in KNOWN_PEOPLE:
             if person['Resident'] == False:
                 person['active'] = True
+                person['NotifyDeskPhone'] = True
                 if HOME_ALONE_NUM not in person['textNums']:
                     person['textNums'].append(HOME_ALONE_NUM)
         
@@ -182,6 +184,7 @@ def findAllKnownPeople():
         d['textNums'] = []
         d['callNums'] = []
         d['Resident'] = False
+        d['NotifyDeskPhone'] = False
         if residenceStatus == 1:
             d['Resident'] = True
         
@@ -281,6 +284,10 @@ def findPeopleHere():
                 resident = 1
             sql = f"INSERT INTO PeopleHere (Name, hostname, MacAddress, Resident) VALUES ('{person['Name']}', '{person['hosts'][0]}', '{person['macs'][0]}', {resident})"
             df.runSql(sql)
+            if person['NotifyDeskPhone'] == True and FIRST_RUN == False:
+                print('Going to notify the desk phone')
+                sql = f"INSERT INTO `ProcessToRun` (`Command`, `Server`, `args`) VALUES ('personArrival', 'server', '{person['Name']}');"
+                df.runSql(sql)
             if FIRST_RUN == False:
                 runActions(person)
                 sql = f"INSERT INTO personStatus (Person, Status) VALUES ('{person['Name']}','Arrived')"
