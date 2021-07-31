@@ -411,7 +411,7 @@ def beastMode():
     
 def writeError(e):
     f = open(ERROR_FILE,'a')
-    f.write(str(e)+'\n')
+    f.write(f'Error occured at {datetime.datetime.now()} {str(e)}'+'\n')
     f.close()
 
 def main():
