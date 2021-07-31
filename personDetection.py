@@ -266,6 +266,8 @@ def findPeopleHere():
             currentPerson['macs'] = []
             currentPerson['hosts'].append(hostname)
             currentPerson['macs'].append(mac)
+            currentPerson['Resident'] = False
+            currentPerson['NotifyDeskPhone'] = False
             #currentPerson['last_seen'] = last_seen
             people_found.append(currentPerson)
        
@@ -284,6 +286,7 @@ def findPeopleHere():
                 resident = 1
             sql = f"INSERT INTO PeopleHere (Name, hostname, MacAddress, Resident) VALUES ('{person['Name']}', '{person['hosts'][0]}', '{person['macs'][0]}', {resident})"
             df.runSql(sql)
+            #print(sql)
             if person['NotifyDeskPhone'] == True and FIRST_RUN == False:
                 print('Going to notify the desk phone')
                 sql = f"INSERT INTO `ProcessToRun` (`Command`, `Server`, `args`) VALUES ('personArrival', 'server', '{person['Name']}');"
