@@ -38,7 +38,7 @@ HOME_ALONE_NUM = "+17153471797"
 
 # Creates the information needed to take action for people that are to be observed
 # Set the default action to just email me
-def createPeopleToNotice():
+def __createPeopleToNotice():
     global PEOPLE_TO_NOTICE_FILE
     global PEOPLE_TO_NOTICE
 
@@ -77,19 +77,25 @@ def createPeopleToNoticeDatabase():
     global PEOPLE_TO_NOTICE
     global KNOWN_PEOPLE
     global CURRENT_PRIORITY
-    priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")
+    priority = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")[0][0]
     PEOPLE_TO_NOTICE = []
 
-    if priority[0][0] != CURRENT_PRIORITY:
+    #findAllKnownPeople()
+    clearActionDetails()
+
+    if priority != CURRENT_PRIORITY:
         print(f'Switching to {priority[0][0]}')
         
-
-    if priority[0][0] == "Disabled":
+    if priority == "Disabled":
         PEOPLE_TO_NOTICE = []
+        #findAllKnownPeople()
+        for person in KNOWN_PEOPLE:
+            person['active'] = False
         CURRENT_PRIORITY = "Disabled"
         return
-    elif priority[0][0] == "Home Alone":
+    elif priority == "Home Alone":
         PEOPLE_TO_NOTICE = []
+        #findAllKnownPeople()
         CURRENT_PRIORITY = "Home Alone"
         for person in KNOWN_PEOPLE:
             if person['Name'] == 'Derek':
@@ -98,14 +104,9 @@ def createPeopleToNoticeDatabase():
                 person['textNums'].append(HOME_ALONE_NUM)
             person['active'] = True
             person['NotifyDeskPhone'] = True
-    elif priority[0][0] == "Outside Detection":
+    elif priority == "Outside Detection":
         PEOPLE_TO_NOTICE = []
-        # Clears the change from home alone mode 
-        # Might be able to remove this
-        if CURRENT_PRIORITY == "Home Alone":
-            for person in KNOWN_PEOPLE:
-                if HOME_ALONE_NUM in  person['textNums']:
-                    person['textNums'].remove(HOME_ALONE_NUM)
+        #findAllKnownPeople()
 
         for person in KNOWN_PEOPLE:
             if person['Resident'] == False:
@@ -116,20 +117,23 @@ def createPeopleToNoticeDatabase():
         
         CURRENT_PRIORITY = "Outside Detection"
         
-    else:
-        PEOPLE_TO_NOTICE = []
-        if CURRENT_PRIORITY == "Home Alone":
-            for person in KNOWN_PEOPLE:
-                if HOME_ALONE_NUM in person['textNums']:
-                    person['textNums'].remove(HOME_ALONE_NUM)
+    PEOPLE_TO_NOTICE = []
+    #findAllKnownPeople()
+        # for person in KNOWN_PEOPLE:
+        #     if HOME_ALONE_NUM in person['textNums']:
+        #         person['textNums'].remove(HOME_ALONE_NUM)
     
-    CURRENT_PRIORITY = df.runSql("SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1")[0][0]
+    CURRENT_PRIORITY = priority
     sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
     results = df.runSql(sql)
     # Keeps actions from normal and adds new actions
-    if priority[0][0] == "Home Alone":
+    if priority == "Home Alone" or priority == "Outside Detection":
+        #print(f'Since priorty is {priority} we will use the normnal actions too')
         sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = 'Normal'"
         results = df.runSql(sql)
+    else:
+        pass
+        #print(f'Since priorty is {priority} we will call it here')
     for entry in results:
         name = entry[0]
         email = entry[1]
@@ -149,12 +153,22 @@ def createPeopleToNoticeDatabase():
                 person['active'] = True 
 
     
-    
+
+def clearActionDetails():
+     global KNOWN_PEOPLE
+     for person in KNOWN_PEOPLE:
+         person['specialActions'] = []
+         person['active'] = False
+         person['emails'] = []
+         person['textNums'] = []
+         person['callNums'] = []
+         person['NotifyDeskPhone'] = False
 
 # Searches db and find the people
 # Should only run once at start of program  
 def findAllKnownPeople():
     global KNOWN_PEOPLE
+    KNOWN_PEOPLE = []
     #KNOWN_PEOPLE = []
     # Reads the sql query for finding the known people
     path = os.path.join('sql','knownPeople.sql')
@@ -418,8 +432,8 @@ def main():
     try:
         #findAllKnownPeople()
         #createPeopleToNotice()
+        findAllKnownPeople()
         while True:
-            findAllKnownPeople()
             createPeopleToNoticeDatabase()
             findPeopleHere()
             time.sleep(1)
