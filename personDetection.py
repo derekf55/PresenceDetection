@@ -1,7 +1,6 @@
 # The purpose of this program is to run different actions based on who is detected
 # Written by Derek Franz
 # Started 12/24/20
-# Last Updated 5/25/21 
 
 import json, time, os
 from datetime import datetime
@@ -10,6 +9,7 @@ import personDetectedCall
 from derek_functions import *
 import requests
 import derek_functions as df
+from requests.api import post, get
 
 # A list of dicts with the name info about them
 PEOPLE_TO_NOTICE = []
@@ -84,7 +84,7 @@ def createPeopleToNoticeDatabase():
     clearActionDetails()
 
     if priority != CURRENT_PRIORITY:
-        print(f'Switching to {priority[0][0]}')
+        print(f'Switching to {priority}')
         
     if priority == "Disabled":
         PEOPLE_TO_NOTICE = []
@@ -278,11 +278,23 @@ def findPeopleHere():
         if currentPerson not in KNOWN_PEOPLE:
             currentPerson['hosts'] = []
             currentPerson['macs'] = []
+            currentPerson['last_seen'] = last_seen
+            currentPerson['emails'] = []
+            currentPerson['textNums'] = []
+            currentPerson['specialActions'] = []
+            currentPerson['callNums'] = []
             currentPerson['hosts'].append(hostname)
             currentPerson['macs'].append(mac)
             currentPerson['Resident'] = False
+            currentPerson['active'] = False
             currentPerson['NotifyDeskPhone'] = False
+            if CURRENT_PRIORITY == 'Outside Detection' or CURRENT_PRIORITY == 'Home Alone':
+                currentPerson['active'] = True
+                currentPerson['NotifyDeskPhone'] = True
+                currentPerson['textNums'].append(HOME_ALONE_NUM)
+            
             #currentPerson['last_seen'] = last_seen
+            KNOWN_PEOPLE.append(currentPerson)
             people_found.append(currentPerson)
        
     if FIRST_RUN == True:
@@ -375,25 +387,44 @@ def turnLights():
         return False
 
     # Get the status of the lights in the living room
-    sql = "SELECT Appliance, State FROM homeAutomation WHERE groupName = 'Living_Room'"
-    results = df.runSql(sql)
+    # sql = "SELECT Appliance, State FROM homeAutomation WHERE groupName = 'Living_Room'"
+    # results = df.runSql(sql)
 
-    for result in results:
-        appliance = result[0]
-        state = result[1]
-        # If a light is already on then stop
-        if state == 1:
-            return False
+    url = "https://derekfranz.ddns.net:8542/api/states"
+    headers = HOME_ASSISTANT_HEADERS
+    devices_to_switch = ['light_1','light_2']
+
+    response = get(url,headers=headers,verify=False)
+    list_of_json = json.loads(response.text)
+    for item in list_of_json:
+        domain, name = item['entity_id'].split('.')
+        if name in devices_to_switch:
+            #service_data = {"entity_id":item['entity_id']}
+            state = item['state']
+            if state == 'on':
+                return False
+   
 
     # Only turn on one light between 9pm and 8 am
     if now.hour >= 21 or now.hour < 8:
-        sql = "UPDATE homeAutomation SET State = 1 WHERE Appliance = 'Light_2'"
-        df.runSql(sql)
+        # sql = "UPDATE homeAutomation SET State = 1 WHERE Appliance = 'Light_2'"
+        # df.runSql(sql)
+
+        url = "https://derekfranz.ddns.net:8542/api/services/light/turn_on"
+        service_data = {"entity_id":'light.light_2'}
+        response = post(url,headers=headers,json=service_data,verify=False)
+
         return True
 
     # Otherwise its between 
     sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_Room'"
     df.runSql(sql)
+
+    url = "https://derekfranz.ddns.net:8542/api/services/light/turn_on"
+    for each in devices_to_switch:
+        service_data = {"entity_id":f'light.{each}'}
+        response = post(url,headers=headers,json=service_data,verify=False)
+
     return True
 
 def logAction(name, action):
@@ -424,6 +455,7 @@ def beastMode():
         time.sleep(3)
     
 def writeError(e):
+    print(f'Error occured at {datetime.datetime.now()} {str(e)}')
     f = open(ERROR_FILE,'a')
     f.write(f'Error occured at {datetime.datetime.now()} {str(e)}'+'\n')
     f.close()
@@ -439,7 +471,8 @@ def main():
             time.sleep(1)
     except Exception as e:
         time.sleep(1)
-        writeError(e)
+        print(f'Error in main {e}')
+        writeError(f'error occured in main {e}')
         main()
 
 if __name__ == '__main__':
