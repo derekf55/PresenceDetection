@@ -296,7 +296,7 @@ def findPeopleHere():
             #currentPerson['last_seen'] = last_seen
             KNOWN_PEOPLE.append(currentPerson)
             people_found.append(currentPerson)
-       
+    df.delete_old_voicemails()
     if FIRST_RUN == True:
         sql = "DELETE FROM PeopleHere"
         df.runSql(sql)
