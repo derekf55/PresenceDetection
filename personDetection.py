@@ -296,7 +296,11 @@ def findPeopleHere():
             #currentPerson['last_seen'] = last_seen
             KNOWN_PEOPLE.append(currentPerson)
             people_found.append(currentPerson)
-    df.delete_old_voicemails()
+    try:
+        df.delete_old_voicemails()
+    except Exception as e:
+        #print('Problem delete the old voicemails')
+        writeError(f'Problem trying to delete old voicemails {str(e)}')
     if FIRST_RUN == True:
         sql = "DELETE FROM PeopleHere"
         df.runSql(sql)
@@ -394,8 +398,14 @@ def turnLights():
     headers = HOME_ASSISTANT_HEADERS
     devices_to_switch = ['light_1','light_2']
 
-    response = get(url,headers=headers,verify=False)
-    list_of_json = json.loads(response.text)
+    try:
+        response = get(url,headers=headers,verify=False)
+        list_of_json = json.loads(response.text)
+    except Exception as e:
+        print('Failed to get light data')
+        writeError(f'Failed to get light data {str(e)}')
+        return False
+    
     for item in list_of_json:
         domain, name = item['entity_id'].split('.')
         if name in devices_to_switch:
@@ -412,7 +422,12 @@ def turnLights():
 
         url = "https://derekfranz.ddns.net:8542/api/services/light/turn_on"
         service_data = {"entity_id":'light.light_2'}
-        response = post(url,headers=headers,json=service_data,verify=False)
+        try:
+            response = post(url,headers=headers,json=service_data,verify=False)
+        except Exception as e:
+            print('Failed to switch light 2')
+            writeError(f'Failed to switch light 2 {str(e)}')
+            return False
 
         return True
 
@@ -423,7 +438,12 @@ def turnLights():
     url = "https://derekfranz.ddns.net:8542/api/services/light/turn_on"
     for each in devices_to_switch:
         service_data = {"entity_id":f'light.{each}'}
-        response = post(url,headers=headers,json=service_data,verify=False)
+        try:
+            response = post(url,headers=headers,json=service_data,verify=False)
+        except Exception as e:
+            print('Failed to switch lights')
+            writeError(f'Failed to switch lights {str(e)}')
+            return False
 
     return True
 
