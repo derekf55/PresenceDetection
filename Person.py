@@ -14,3 +14,6 @@ class Person:
         self.last_seen = None
         self.speak_to_google = []
 
+    def __str__(self) -> str:
+        return self.name
+
