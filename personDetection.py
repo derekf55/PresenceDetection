@@ -3,12 +3,8 @@
 # Started 12/24/20
 
 import json, time, os
-from logging import error
-from datetime import datetime
-from twilio import rest
+import datetime
 import personDetectedCall
-from derek_functions import *
-import requests
 import derek_functions as df
 from requests.api import post, get
 from Person import Person
@@ -34,9 +30,20 @@ class PresenceDetection:
         self.known_people = []
         self.current_priority = ""
         self.people_here = []
+        self.newest_seen = None
+        self.database_error = False
 
         # Contains all the sql that failed to run so it can try and be run again and catch the system up
         self.failed_sql = []
+
+    def clear_atributes(self):
+        for person in self.known_people:
+            person.textNums = []
+            person.callNums = []
+            person.special_actions = []
+            person.notify_desk_phone = False
+            person.active = False
+            person.emails = []
 
     def create_people_to_notice(self):
         try:
@@ -48,6 +55,8 @@ class PresenceDetection:
 
         if priority != self.current_priority:
             print(f'Switching to {priority}')
+            self.clear_atributes()
+            
 
         if priority == 'Disabled':
             for person in self.known_people:
@@ -68,6 +77,7 @@ class PresenceDetection:
                     if HOME_ALONE_NUM not in person.textNums:
                         person.textNums.append(HOME_ALONE_NUM)
         
+
         self.current_priority = priority
 
         sql = "SELECT Name, email, textNum, callNum, specialAction FROM peopleToNotice WHERE active = 1 and PriorityLevel = (SELECT PriorityLevel FROM personDetectionPriority WHERE ID = 1)"
@@ -111,7 +121,7 @@ class PresenceDetection:
         
         # Get access to database
         try:
-            results = runSql(sql)
+            results = df.runSql(sql)
         except Exception as e:
             print('Problem getting known people')
             print('Going to keep the people we know and try to continue')
@@ -151,6 +161,7 @@ class PresenceDetection:
     
     # Try and make up for the errors if not possible just ignore and wait 
     def make_up_errors(self):
+        self.failed_sql = set(list(self.failed_sql))
         for sql in self.failed_sql:
             try:
                 df.runSql(sql)
@@ -164,7 +175,14 @@ class PresenceDetection:
         people_found = []
 
         # Get access to database
-        results = runSql(FIND_PEOPLE_SQL)
+        try:
+            results = df.runSql(FIND_PEOPLE_SQL)
+        except Exception as e:
+            error_msg = f'Failed to get people from database.  Going to return and not try to make this up {e}'
+            print(error_msg)
+            writeError(error_msg)
+            self.database_error = True
+            return 
 
         # If there are no people at the house
         if len(results) < 0:
@@ -177,6 +195,18 @@ class PresenceDetection:
             mac = item[2]
             last_seen = item[3]
             currentPerson = Person()
+
+            if self.newest_seen is not None and last_seen < self.newest_seen - datetime.timedelta(minutes=3):
+                print('This is old enough to cause a problem')
+                exit()
+
+            if self.newest_seen == None or self.newest_seen < last_seen:
+                self.newest_seen = last_seen
+            
+            # if self.database_error == True:
+            #     print(self.newest_seen)
+
+            
             
             # If the person is not mapped in MacToName
             if name == None:
@@ -193,7 +223,7 @@ class PresenceDetection:
                     try:
                         name = hostname
                     except Exception as e:
-                        self.writeError(f'From line 220 {e}')
+                        writeError(f'From line 220 {e}')
 
             currentPerson.name = name
             # Go through the known peoples list to find dict of relivent person
@@ -219,7 +249,7 @@ class PresenceDetection:
         try:
             df.delete_old_voicemails()
         except Exception as e:
-            self.writeError(f'There was a problem accessing freePBX {str(e)}')
+            writeError(f'There was a problem accessing freePBX {str(e)}')
         
         if self.first_run == True:
             sql = "DELETE FROM PeopleHere"
@@ -295,10 +325,10 @@ class PresenceDetection:
                     sql = f"DELETE FROM PeopleHere WHERE Name = '{person.name}'"
                     df.runSql(sql)
                 except Exception as e:
-                    error_msg = f'Failed to remove person from people here table.  Going to continue and try to make up this action {e}'
+                    error_msg = f'Failed to remove person from people here table.  Going to continue and not try to make up this action {e}'
                     print(error_msg)
                     writeError(error_msg)
-                    self.failed_sql(sql)
+                    #self.failed_sql(sql)
                 try:
                     sql = f"INSERT INTO personStatus (Person, Status) VALUES ('{person.name}','Left')"
                     df.runSql(sql)
@@ -313,7 +343,8 @@ class PresenceDetection:
                     self.people_here.remove(person)
                 except Exception as e:
                     print('Failed to remove a person')
-                    self.writeError(f'Failed to remove this person {e}')
+                    writeError(f'Failed to remove this person {e}')
+                    exit()
 
         self.first_run = False
         if needs_update == True:
@@ -383,7 +414,7 @@ class PresenceDetection:
         # results = df.runSql(sql)
 
         url = "https://derekfranz.ddns.net:8542/api/states"
-        headers = HOME_ASSISTANT_HEADERS
+        headers = df.HOME_ASSISTANT_HEADERS
         devices_to_switch = ['light_1','light_2']
 
         try:
@@ -445,12 +476,7 @@ class PresenceDetection:
             print(error_msg)
             writeError(error_msg)    
 
-    
-    def writeError(self, e):
-        print(f'Error occured at {datetime.datetime.now()} {str(e)}')
-        f = open(ERROR_FILE,'a')
-        f.write(f'Error occured at {datetime.datetime.now()} {str(e)}'+'\n')
-        f.close()
+
 
 def writeError(e):
         print(f'Error occured at {datetime.datetime.now()} {str(e)}')
@@ -465,18 +491,18 @@ def main():
     # p.findPeopleHere()
     p = PresenceDetection()
     while True:
-        try:
+        # try:
             #findAllKnownPeople()
             #createPeopleToNotice()
-                p.make_up_errors()
-                p.findAllKnownPeople()
-                p.create_people_to_notice()
-                p.findPeopleHere()
-                time.sleep(1)
-        except Exception as e:
-            time.sleep(1)
-            print(f'Error in main {e}')
-            writeError(f'error occured in main {e}')
+        p.make_up_errors()
+        p.findAllKnownPeople()
+        p.create_people_to_notice()
+        p.findPeopleHere()
+        time.sleep(1)
+        # except Exception as e:
+        #     time.sleep(1)
+        #     print(f'Error in main {e}')
+        #     writeError(f'error occured in main {e}')
             
 
 if __name__ == '__main__':
