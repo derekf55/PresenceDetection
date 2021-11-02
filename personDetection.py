@@ -444,6 +444,8 @@ class PresenceDetection:
             service_data = {"entity_id":'light.light_2'}
             try:
                 response = post(url,headers=headers,json=service_data,verify=False)
+                service_data = {"entity_id":'light.erg_room_light'}
+                response = post(url,headers=df.HOME_ASSISTANT_HEADERS, json=service_data,verify=False)
             except Exception as e:
                 print('Faile to change light 2')
                 writeError(f'Failed to change light 2 {str(e)}')
