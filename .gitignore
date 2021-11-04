@@ -2,3 +2,9 @@
 test.py
 wifiBackup.log
 error.log
+PersonDetectedCall.py
+new_test.py
+.vscode
+__pycache__
+knownPeople - Copy.sql
+knownPeople2.sql
