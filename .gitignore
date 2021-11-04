@@ -1,0 +1,4 @@
+#Ignore files you dont quite want to delete yet
+test.py
+wifiBackup.log
+error.log
