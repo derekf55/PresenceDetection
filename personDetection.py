@@ -6,7 +6,7 @@ import json, time, os
 import datetime
 import personDetectedCall
 import derek_functions as df
-from requests.api import post, get
+from requests.api import post, get, request
 from Person import Person
 
 # A list of dicts with the name info about them
@@ -338,6 +338,13 @@ class PresenceDetection:
                     writeError(error_msg)
                     self.failed_sql(sql)
 
+                # If I've left turn off the lights in my room
+                if person.name == 'Derek':
+                    derek_room_lights = ['desk_lamp','christmas_lights']
+                    for light in derek_room_lights:
+                        self.turn_off_light(light)
+
+
                 print(person.name+' left')
                 try:
                     self.people_here.remove(person)
@@ -439,35 +446,16 @@ class PresenceDetection:
         if now.hour >= 21 or now.hour < 8:
             # sql = "UPDATE homeAutomation SET State = 1 WHERE Appliance = 'Light_2'"
             # df.runSql(sql)
-
-            url = "https://derekfranz.ddns.net:8542/api/services/light/turn_on"
-            service_data = {"entity_id":'light.light_2'}
-            try:
-                response = post(url,headers=headers,json=service_data,verify=False)
-                service_data = {"entity_id":'light.erg_room_light'}
-                response = post(url,headers=df.HOME_ASSISTANT_HEADERS, json=service_data,verify=False)
-            except Exception as e:
-                print('Faile to change light 2')
-                writeError(f'Failed to change light 2 {str(e)}')
-                return False
-
-            return True
+            lights_to_switch = ['light_2','erg_room_light']
+            for light in lights_to_switch:
+                self.turn_on_light(light)
+            
 
         # Otherwise its between 
         # sql = "UPDATE homeAutomation SET State = 1 WHERE groupName = 'Living_Room'"
         # df.runSql(sql)
-
-        url = "https://derekfranz.ddns.net:8542/api/services/light/turn_on"
         for each in devices_to_switch:
-            service_data = {"entity_id":f'light.{each}'}
-            try:
-                response = post(url,headers=headers,json=service_data,verify=False)
-            except Exception as e:
-                error_msg = f'Failed to change living room lights {e}'
-                print(error_msg)
-                writeError(error_msg)
-                return False
-        return True
+            self.turn_on_light(each)
 
     def logAction(self,name, action):
         sql = f"INSERT INTO PersonActionLog (Person,Action) VALUES ('{name}', '{action}')"
@@ -476,7 +464,32 @@ class PresenceDetection:
         except Exception as e:
             error_msg = f'Failed to log error {e}'
             print(error_msg)
-            writeError(error_msg)    
+            writeError(error_msg)
+
+    def turn_off_light(self, light_name):
+        url = "https://derekfranz.ddns.net:8542/api/services/light/turn_off"
+        service_data = {"entity_id":f'light.{light_name}'}
+        try:
+            response = post(url,headers=df.HOME_ASSISTANT_HEADERS,json=service_data,verify=False)
+        except Exception as e:
+            error_msg = f'Failed to turn off light {light_name} {e}'
+            print(error_msg)
+            writeError(error_msg)
+            return False
+        return True
+
+    def turn_on_light(self, light_name):
+        url = "https://derekfranz.ddns.net:8542/api/services/light/turn_on"
+        service_data = {"entity_id":f'light.{light_name}'}
+        try:
+            response = post(url,headers=df.HOME_ASSISTANT_HEADERS,json=service_data,verify=False)
+        except Exception as e:
+            error_msg = f'Failed to turn on light {light_name} {e}'
+            print(error_msg)
+            writeError(error_msg)
+            return False
+        return True
+    
 
 
 
