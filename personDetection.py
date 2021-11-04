@@ -32,6 +32,7 @@ class PresenceDetection:
         self.people_here = []
         self.newest_seen = None
         self.database_error = False
+        self.lights_out = False
 
         # Contains all the sql that failed to run so it can try and be run again and catch the system up
         self.failed_sql = []
@@ -266,6 +267,16 @@ class PresenceDetection:
 
         # This is used to ensure that the people here table is only updated if everyone 
         temp_people_here = []
+
+        # If no one is home turn off all the lights in the house
+        # In the short term we will only do this once in case of a bug that would keep the lights off
+        if len(people_found) == 0:
+            lights = ['light_1','light_2','erg_room_light']
+            if self.lights_out == False:
+                self.lights_out = True
+                df.sendText('+17153471797','Just turned off all the lights in the house')
+                for light in lights:
+                    self.turn_off_light(light)
 
         for person in people_found:  
             #If someone has just arrived
