@@ -423,8 +423,7 @@ class PresenceDetection:
                     self.logAction(person.name, action)
 
 
-    def small_test(self):
-        print(df.CAMERA_PATH)
+   
 
     # TODO
     # 1) If living room lights are on and its dark enough only turn on erg room light
