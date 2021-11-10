@@ -18,9 +18,9 @@ f.close()
 
 ERROR_FILE = "error.log"
 
-# 8am and 6pm 
+# 8am and 5pm 
 END_SWITCHING_LIGHT_HOUR = 8
-START_SWITCHING_LIGHT_HOUR = 17
+START_SWITCHING_LIGHT_HOUR = 16
 HOME_ALONE_NUM = "+17153471797"
 
 
@@ -33,6 +33,7 @@ class PresenceDetection:
         self.newest_seen = None
         self.database_error = False
         self.lights_out = False
+        self.light_level_threshold = 1.0
 
         # Contains all the sql that failed to run so it can try and be run again and catch the system up
         self.failed_sql = []
@@ -417,10 +418,18 @@ class PresenceDetection:
 
         for action in person.special_actions:
             if action == 'lights':
-                sucess = self.turnLights()
+                sucess = self.switch_lights()
                 if sucess == True:
                     self.logAction(person.name, action)
 
+
+    def small_test(self):
+        print(df.CAMERA_PATH)
+
+    # TODO
+    # 1) If living room lights are on and its dark enough only turn on erg room light
+    # 2) If lights are off but the tv is playing only turn on the erg room light
+    # 3) Replace time data with info from amient light sensor
     def turnLights(self):
         now = datetime.datetime.now()
         # Ignore between these hours
@@ -467,6 +476,77 @@ class PresenceDetection:
         # df.runSql(sql)
         for each in devices_to_switch:
             self.turn_on_light(each)
+
+    def switch_lights(self):
+        # Check if it's dark and if not return
+        url = "https://derekfranz.ddns.net:8542/api/states/sensor.temt6000_illuminance"
+        try:
+            response = get(url,headers=df.HOME_ASSISTANT_HEADERS, verify=False)
+            json_data = json.loads(response.text)
+            light_level = json_data['state']
+            # If it is currently lighter than the darkness threshold do nothing
+            if float(light_level) > self.light_level_threshold:
+                return False
+        except Exception as e:
+            error_msg = f'Failed to get amient light info {e}'
+            print(error_msg)
+            writeError(error_msg)
+            return False
+
+
+        # Check if all lights are off 
+        lights_to_check = ['light_1','light_2']
+        for light in lights_to_check:
+            status = self.get_light_status(light)
+            if status == 'on' or status == False:
+                # Light is on or cant determine so do nothing
+                return False
+        
+        # At this point both lights are determined to be off and it's dark
+        # Check if TV is playing and if so only turn on erg room light
+        url = "https://derekfranz.ddns.net:8542/api/states"
+        try:
+            response = get(url,headers=df.HOME_ASSISTANT_HEADERS, verify=False)
+            list_of_json = json.loads(response.text)
+        # NEED TO DECIDE WHAT TO DO IF UNABLE TO GET TV DATA
+        # RIGHT NOW WILL DO NOTHING
+        except Exception as e:
+            error_msg = f'Failed to get info on the TV {e}'
+            print(error_msg)
+            writeError(error_msg)
+            return False
+
+        for item in list_of_json:
+            if item['entity_id'] == 'media_player.living_room_tv':
+                state = item['state']
+                tv_on_states = ['unknown','playing','paused']
+                # TV is on so only turn on erg light
+                if state in tv_on_states:
+                    self.turn_on_light('erg_room_light')
+                else:
+                    lights = ['erg_room_light','light_2','light_1']
+                    # If its not too late then turn on all lights otherwise just light 2
+                    now = datetime.datetime.now()
+                    # Don't turn on lights 1 between 9pm and 8 am
+                    if now.hour >= 21 or now.hour < 8:
+                        lights.remove('light_1')
+                    for light in lights:
+                        self.turn_on_light(light)
+        return True
+        
+    #@param light_name: Name of the light entity
+    #@return: Returns on if light is on, off if the light is off and False if there was an error
+    def get_light_status(self,light_name):
+        try:
+            url = f"https://derekfranz.ddns.net:8542/api/states/light.{light_name}"
+            response = get(url,headers=df.HOME_ASSISTANT_HEADERS,verify=False)
+            json_data = json.loads(response.text)
+            return json_data['state']
+        except Exception as e:
+            error_msg = f'Failed to get light status {light_name} {e}'
+            print(error_msg)
+            writeError(error_msg) 
+            return False
 
     def logAction(self,name, action):
         sql = f"INSERT INTO PersonActionLog (Person,Action) VALUES ('{name}', '{action}')"
