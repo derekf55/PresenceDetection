@@ -45,6 +45,15 @@ class Person:
             elif state == 'off':
                 turn_off_light(light)
 
+    def print_data(self):
+        print(f'Name: {self.name}')
+        print(f'Hosts: {self.hosts}')
+        print(f'macs: {self.macs}')
+        print(f'Resident: {self.Resident}')
+        print(f'Textnums {self.textNums}')
+        print(f'Active: {self.active}')
+        print(f'Actions: {self.special_actions}')
+
 
     def __str__(self) -> str:
         return self.name
@@ -52,3 +61,11 @@ class Person:
     def __repr__(self) -> str:
         return self.name
 
+
+    def __eq__(self, __o: object) -> bool:
+        try:
+            if self.name == __o.name:
+                return True
+        except Exception as e:
+            pass
+        return False
